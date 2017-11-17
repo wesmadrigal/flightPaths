@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import networkx as nx
+from math import *
 
 airport_schema = {
         'airport_id' : 0,
@@ -52,7 +53,7 @@ def get_airport_data():
             airport_data[row[airport_schema['airport_id']]] = {
                     k: row[airport_schema[k]]
                     for k in airport_schema.keys()
-                    } 
+                    }
     with open('routes.dat', 'r') as f:
         data = f.read().split('\n')
         data.pop()
@@ -119,9 +120,9 @@ def optimize_paths_distance_hops(start, end):
     nodes_to_traverse = []
     paths = {}
     for n in airport_graph[start].keys():
-        nodes_to_traverse.append( n )       
+        nodes_to_traverse.append( n )
         paths[n] = {
-                'distance' : airport_graph.get_edge_data(start, n)['distance'], 
+                'distance' : airport_graph.get_edge_data(start, n)['attr_dict']['distance'],
                 'path' : [start, n],
                 'paths' : []
                 }
@@ -131,16 +132,16 @@ def optimize_paths_distance_hops(start, end):
         for n1 in airport_graph[n].keys():
             if not paths.get(n1):
                 paths[n1] = {
-                        'distance' : paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance'],
+                        'distance' : paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'],
                         'path' : paths[n]['path'] + [n1],
                         'paths' : [ paths[n]['path'] + [n1] ]
                         }
                 nodes_to_traverse.append(n1)
             else:
                 paths[n1]['paths'].append(paths[n]['path'] + [n1])
-                if paths[n1]['distance'] > paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance'] and len(paths[n1]['path']) >= len(paths[n]['path'] + [n1]):
+                if paths[n1]['distance'] > paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'] and len(paths[n1]['path']) >= len(paths[n]['path'] + [n1]):
                     paths[n1]['path'] = paths[n]['path'] + [n1]
-                    paths[n1]['distance'] = paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance']
+                    paths[n1]['distance'] = paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance']
     return paths[end]
 
 
@@ -149,15 +150,19 @@ if __name__ == '__main__':
     Calculates the shortest path by distance and hops between two cities
     and plans the travel route, irrespective of any other factors
     '''
-    airportdata = get_airport_data()    
-    start = raw_input("Enter a start city:")    
+    airportdata = get_airport_data()
+    start = raw_input("Enter a start city:")
+    start = start.strip(' ')
     start_airports = list(reversed(find_airports(start, airportdata=airportdata)))[0:3]
     for ix, a in enumerate(start_airports):
         print ix, a['name']
     print ''
     start_selection = raw_input("Please type the number for the airport you would like to depart from: ")
+    start_selection = start_selection.strip(' ')
+
     start_airport = start_airports[int(start_selection)]
     end = raw_input("Enter an destination city:")
+    end = end.strip(' ')
     end_airports = list(reversed(find_airports(end, airportdata=airportdata)))[0:3]
     for ix, a in enumerate(end_airports):
         print ix, a['name']
@@ -165,11 +170,11 @@ if __name__ == '__main__':
     end_airport = end_airports[int(end_selection)]
     start_id = start_airport['airport_id']
     end_id = end_airport['airport_id']
-    path = optimize_paths_distance_hops(start_id, end_id)        
+    path = optimize_paths_distance_hops(start_id, end_id)
     print path
     print ''
     print "Total distance: %f km" % path['distance']
     print ' --> '.join([airportdata[i]['iata/faa'] for i in path['path']])
-    print ''        
+    print ''
     for i in range(len(path['path'])):
         print "Airport %d: %s, %s, %s" % (i, airportdata[path['path'][i]]['iata/faa'], airportdata[path['path'][i]]['city'], airportdata[path['path'][i]]['country'])
