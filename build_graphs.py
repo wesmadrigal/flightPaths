@@ -88,11 +88,15 @@ def parse_routes():
             source_airport_id = row[routes_schema['source_airport_id']]
             dest_airport_id = row[routes_schema['destination_airport_id']]
             airline_id = row[routes_schema['airline_id']]
+            stops = row[routes_schema['stops']]
+            if int(stops) > 0:
+                print source_airport_id
             try:
                 lat1, lon1 = float(airport_data[source_airport_id]['latitude']), float(airport_data[source_airport_id]['longitude'])
                 lat2, lon2 = float(airport_data[dest_airport_id]['latitude']), float(airport_data[dest_airport_id]['longitude'])
                 dist = haversine(lat1, lon1, lat2, lon2)
             except Exception, e:
+                #print e
                 continue
             airport_graph.add_edge(source_airport_id, dest_airport_id, attr_dict={'distance' : dist})
     return airport_graph
@@ -121,27 +125,35 @@ def optimize_paths_distance_hops(start, end):
     paths = {}
     for n in airport_graph[start].keys():
         nodes_to_traverse.append( n )
-        paths[n] = {
-                'distance' : airport_graph.get_edge_data(start, n)['attr_dict']['distance'],
+        try:
+            paths[n] = {
+                #'distance' : airport_graph.get_edge_data(start, n)['attr_dict']['distance'],
+                'distance' : airport_graph.get_edge_data(start, n)['distance'],
                 'path' : [start, n],
                 'paths' : []
                 }
+        except Exception, e:
+            print "Failed on node: {0}".format(n)
     while len(nodes_to_traverse) > 0:
         n = nodes_to_traverse[0]
         del nodes_to_traverse[0]
         for n1 in airport_graph[n].keys():
             if not paths.get(n1):
                 paths[n1] = {
-                        'distance' : paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'],
+                        #'distance' : paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'],
+                        'distance' : paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance'],
                         'path' : paths[n]['path'] + [n1],
                         'paths' : [ paths[n]['path'] + [n1] ]
                         }
                 nodes_to_traverse.append(n1)
             else:
                 paths[n1]['paths'].append(paths[n]['path'] + [n1])
-                if paths[n1]['distance'] > paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'] and len(paths[n1]['path']) >= len(paths[n]['path'] + [n1]):
+#                if paths[n1]['distance'] > paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance'] and len(paths[n1]['path']) >= len(paths[n]['path'] + [n1]):
+                if paths[n1]['distance'] > paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance'] and len(paths[n1]['path']) >= len(paths[n]['path'] + [n1]):
                     paths[n1]['path'] = paths[n]['path'] + [n1]
-                    paths[n1]['distance'] = paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance']
+                    paths[n1]['distance'] = paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['distance']
+#                    paths[n1]['distance'] = paths[n]['distance'] + airport_graph.get_edge_data(n, n1)['attr_dict']['distance']
+
     return paths[end]
 
 
@@ -171,7 +183,7 @@ if __name__ == '__main__':
     start_id = start_airport['airport_id']
     end_id = end_airport['airport_id']
     path = optimize_paths_distance_hops(start_id, end_id)
-    print path
+    #print path
     print ''
     print "Total distance: %f km" % path['distance']
     print ' --> '.join([airportdata[i]['iata/faa'] for i in path['path']])

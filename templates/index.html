@@ -1,0 +1,53 @@
+<html>
+    <head>
+        <h2>Welcome to Flight Paths</h2>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script>
+function get_flight_paths(){
+    
+    var start = $('#start_city').val();
+    var end = $('#end_city').val();
+alert("Building flight paths for " + start + " to " + end);
+    // send the request off
+    // get the request back
+    // update the data
+	$.ajax({
+		url: 'http://localhost:5000/build_flight_paths',
+		dataType: 'json',
+		type: 'post',
+		contentType: 'application/json',
+		data: JSON.stringify( { "start_city": $('#start_city').val(), "end_city": $('#end_city').val() } ),
+		processData: false,
+		success: function( data, textStatus, jQxhr ){
+//			$('#response pre').html( JSON.stringify( data ) );
+
+//            alert(JSON.stringify( data ));
+            var path = data['path'];
+            var distance = data['distance'];
+            $('.route').text(data['route']);
+		},
+		error: function( jqXhr, textStatus, errorThrown ){
+			alert( errorThrown );
+    }
+});
+}
+        </script>
+
+    </head>
+
+    <body>
+        <div id="input">
+            <input type="text" id="start_city" />
+            <br>
+            <br>
+            <input type="text" id="end_city" />
+            <br>
+            <br>
+            <button onclick="get_flight_paths()">Flight Paths</button>
+        </div>
+        <div id="output">
+            <div class="route"></div>
+        </div>
+
+        </body>
+</html>
